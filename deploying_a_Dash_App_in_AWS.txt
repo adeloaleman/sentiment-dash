@@ -31,8 +31,8 @@ python
 d
 stopwords
 q
-cd /root/nltk_data/corpora/stopword
 
+mv ~/nltk_data  ...../sentiment-dash/data  (move the nltk_data to our project's data folder)
 
 
 # Create the WSGI Entry Point
