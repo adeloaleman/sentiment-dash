@@ -1,0 +1,688 @@
+<html><head>
+<title>index.py</title>
+<meta name="Generator" content="htmlizer/[Twisted, version 19.10.0]" />
+<link rel="alternate" href="index.py" type="text/x-python" />
+
+</head>
+<body>
+<pre><span class="py-src-comment"># Important: States:  https://plot.ly/dash/state</span>
+<span class="py-src-comment"># See this app can be very helfull:   https://dash-gallery.plotly.host/dash-nlp/</span>
+<span class="py-src-comment"># This one has the loading animation: https://dash-gallery.plotly.host/dash-molecule-3d-viewer/</span>
+<span class="py-src-comment"># Esta puede tener la respuesta para la puta scrollbar: https://dash-gallery.plotly.host/dash-needle-plot/</span>
+<span class="py-src-comment"># https://dash-gallery.plotly.host/dash-molecule-3d-viewer/</span>
+
+<span class="py-src-variable">import</span> <span class="py-src-variable">numpy</span>  <span class="py-src-variable">as</span> <span class="py-src-variable">np</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">pandas</span> <span class="py-src-variable">as</span> <span class="py-src-variable">pd</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">collections</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">json</span>
+
+<span class="py-src-variable">import</span> <span class="py-src-variable">plotly</span>.<span class="py-src-variable">graph_objs</span> <span class="py-src-variable">as</span> <span class="py-src-variable">go</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">dash</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">dash_html_components</span> <span class="py-src-variable">as</span> <span class="py-src-variable">html</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">dash_core_components</span> <span class="py-src-variable">as</span> <span class="py-src-variable">dcc</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">dash_bootstrap_components</span> <span class="py-src-variable">as</span> <span class="py-src-variable">dbc</span>
+<span class="py-src-variable">from</span>   <span class="py-src-variable">dash</span>.<span class="py-src-variable">dependencies</span> <span class="py-src-variable">import</span> <span class="py-src-variable">Input</span>, <span class="py-src-variable">Output</span>, <span class="py-src-variable">State</span>
+<span class="py-src-variable">from</span>   <span class="py-src-variable">dash</span> <span class="py-src-variable">import</span> <span class="py-src-variable">no_update</span>
+<span class="py-src-variable">from</span>   <span class="py-src-variable">dash</span>.<span class="py-src-variable">exceptions</span> <span class="py-src-variable">import</span> <span class="py-src-variable">PreventUpdate</span>
+
+<span class="py-src-variable">from</span> <span class="py-src-variable">components</span>.<span class="py-src-variable">navbar</span>   <span class="py-src-variable">import</span> <span class="py-src-variable">navbar</span>, <span class="py-src-variable">navbar2</span>
+<span class="py-src-variable">from</span> <span class="py-src-variable">components</span>.<span class="py-src-variable">sidebar</span>  <span class="py-src-variable">import</span> <span class="py-src-variable">sidebar</span>
+<span class="py-src-variable">from</span> <span class="py-src-variable">components</span>.<span class="py-src-variable">plots</span>    <span class="py-src-variable">import</span> <span class="py-src-variable">textfield</span>, <span class="py-src-variable">wordCloud</span>, <span class="py-src-variable">img_wordCloud</span>, <span class="py-src-variable">wordCountBarChart</span>, <span class="py-src-variable">avgReviewsBarChart</span>, <span class="py-src-variable">avgPricesBarChart</span>, <span class="py-src-variable">avgVsPriceBubbleChart</span>
+
+
+
+
+<span class="py-src-variable">external_stylesheets</span> = [
+    <span class="py-src-variable">dbc</span>.<span class="py-src-variable">themes</span>.<span class="py-src-variable">BOOTSTRAP</span>,
+    <span class="py-src-string">&#x27;https://codepen.io/chriddyp/pen/bWLwgP.css&#x27;</span>,
+    <span class="py-src-string">&#x27;https://www.w3schools.com/w3css/4/w3.css&#x27;</span>,    <span class="py-src-comment"># Para la sidebar https://www.w3schools.com/w3css/w3css_sidebar.asp   https://www.w3schools.com/w3css/tryit.asp?filename=tryw3css_sidebar_shift</span>
+    <span class="py-src-string">&#x27;https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css&#x27;</span>  <span class="py-src-comment"># Incluye el icon del Globe  https://www.w3schools.com/icons/tryit.asp?filename=tryicons_fa-globe</span>
+]
+
+<span class="py-src-variable">app</span> = <span class="py-src-variable">dash</span>.<span class="py-src-variable">Dash</span>(<span class="py-src-variable">__name__</span>, <span class="py-src-variable">external_stylesheets</span>=<span class="py-src-variable">external_stylesheets</span>)
+<span class="py-src-variable">server</span> = <span class="py-src-variable">app</span>.<span class="py-src-variable">server</span>
+
+
+<span class="py-src-variable">data</span> = <span class="py-src-variable">pd</span>.<span class="py-src-variable">read_json</span>(<span class="py-src-string">&#x27;./data/amazon_data.json&#x27;</span>)
+<span class="py-src-variable">brands</span> = [ {<span class="py-src-string">&quot;label&quot;</span>: <span class="py-src-variable">b</span>, <span class="py-src-string">&quot;value&quot;</span>: <span class="py-src-variable">b</span>} <span class="py-src-variable">for</span> <span class="py-src-variable">b</span> <span class="py-src-variable">in</span>  <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;brand&#x27;</span>])) ]
+<span class="py-src-variable">first_brand</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;brand&#x27;</span>]))[<span class="py-src-number">1</span>]
+
+
+<span class="py-src-variable">brand_series_list</span> = <span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;brand&#x27;</span>]+<span class="py-src-string">&#x27; - &#x27;</span>+<span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;series&#x27;</span>]
+<span class="py-src-variable">brand_series_list</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_series_list</span>))
+
+<span class="py-src-variable">brand_list</span> = [ <span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">0</span>] <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">brand_series_list</span> ]
+<span class="py-src-variable">brand_series</span> = <span class="py-src-variable">pd</span>.<span class="py-src-variable">DataFrame</span>({<span class="py-src-string">&#x27;brand&#x27;</span>:<span class="py-src-variable">brand_list</span>,<span class="py-src-string">&#x27;brand_series&#x27;</span>:<span class="py-src-variable">brand_series_list</span>})
+
+<span class="py-src-variable">brand_series_all</span> = <span class="py-src-variable">brand_series</span>[<span class="py-src-string">&#x27;brand_series&#x27;</span>]
+<span class="py-src-variable">brand_series_all</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_series_all</span>))
+<span class="py-src-variable">brand_series_all</span> = <span class="py-src-variable">sorted</span>(<span class="py-src-variable">brand_series_all</span>)
+<span class="py-src-variable">brand_series_dropdown</span> = [ {<span class="py-src-string">&quot;label&quot;</span>: <span class="py-src-variable">s</span>, <span class="py-src-string">&quot;value&quot;</span>: <span class="py-src-variable">s</span>} <span class="py-src-variable">for</span> <span class="py-src-variable">s</span> <span class="py-src-variable">in</span>  <span class="py-src-variable">brand_series_all</span> ]
+
+
+<span class="py-src-variable">brand_series</span> = <span class="py-src-variable">data</span>.<span class="py-src-variable">query</span>(<span class="py-src-string">&#x27;brand in @first_brand&#x27;</span>)[<span class="py-src-string">&#x27;brand&#x27;</span>]+<span class="py-src-string">&#x27; - &#x27;</span>+<span class="py-src-variable">data</span>.<span class="py-src-variable">query</span>(<span class="py-src-string">&#x27;brand in @first_brand&#x27;</span>)[<span class="py-src-string">&#x27;series&#x27;</span>]
+<span class="py-src-variable">brand_series</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_series</span>))
+<span class="py-src-variable">brand_series_value</span> = <span class="py-src-variable">sorted</span>(<span class="py-src-variable">brand_series</span>)
+
+<span class="py-src-variable">series_first_brand</span> = [ <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">2</span>:]) <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">brand_series_value</span> ]
+
+<span class="py-src-variable">text</span> = <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">data</span>[<span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;brand&#x27;</span>]==<span class="py-src-variable">first_brand</span>][<span class="py-src-string">&#x27;reviews_one_string&#x27;</span>])
+
+<span class="py-src-variable">cloud</span> = <span class="py-src-variable">wordCloud</span>(<span class="py-src-variable">text</span>)
+<span class="py-src-variable">imgCloud</span> = <span class="py-src-variable">img_wordCloud</span>(<span class="py-src-variable">cloud</span>)
+
+<span class="py-src-variable">hist</span> = <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>([<span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;histo&#x27;</span>,
+    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 50px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;350px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+    <span class="py-src-variable">figure</span>=<span class="py-src-variable">wordCountBarChart</span>(<span class="py-src-variable">text</span>,<span class="py-src-number">30</span>), <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+)])
+
+<span class="py-src-variable">file</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;w&#x27;</span>) 
+<span class="py-src-variable">file</span>.<span class="py-src-variable">write</span>(<span class="py-src-string">&#x27;0&#x27;</span>)
+<span class="py-src-variable">file</span>.<span class="py-src-variable">close</span>()
+
+<span class="py-src-variable">def</span> <span class="py-src-identifier">resetfile</span>(<span class="py-src-parameter">val</span>):
+    <span class="py-src-variable">file</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;w&#x27;</span>) 
+    <span class="py-src-variable">file</span>.<span class="py-src-variable">write</span>(<span class="py-src-variable">val</span>)
+    <span class="py-src-variable">file</span>.<span class="py-src-variable">close</span>()
+    <span class="py-src-variable">f</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;r&#x27;</span>) 
+    <span class="py-src-variable">return</span>  <span class="py-src-variable">f</span>.<span class="py-src-variable">read</span>()
+
+
+<span class="py-src-variable">minPrice</span> = <span class="py-src-variable">round</span>(<span class="py-src-variable">int</span>(<span class="py-src-variable">data</span>.<span class="py-src-variable">describe</span>()[<span class="py-src-string">&#x27;price&#x27;</span>].<span class="py-src-variable">loc</span>[<span class="py-src-string">&#x27;min&#x27;</span>]))
+<span class="py-src-variable">if</span> <span class="py-src-variable">minPrice</span>%<span class="py-src-number">10</span> != <span class="py-src-number">0</span>:
+        <span class="py-src-variable">minPrice_base10</span> = <span class="py-src-variable">minPrice</span>-(<span class="py-src-variable">minPrice</span>%<span class="py-src-number">10</span>)
+<span class="py-src-variable">else</span>:
+        <span class="py-src-variable">minPrice_base10</span> = <span class="py-src-variable">minPrice</span>
+
+
+<span class="py-src-variable">maxPrice</span> = <span class="py-src-variable">round</span>(<span class="py-src-variable">int</span>(<span class="py-src-variable">data</span>.<span class="py-src-variable">describe</span>()[<span class="py-src-string">&#x27;price&#x27;</span>].<span class="py-src-variable">loc</span>[<span class="py-src-string">&#x27;max&#x27;</span>]))
+<span class="py-src-variable">if</span> <span class="py-src-variable">maxPrice</span>%<span class="py-src-number">10</span> != <span class="py-src-number">0</span>:
+
+        <span class="py-src-variable">maxPrice_base10</span> = <span class="py-src-variable">maxPrice</span>+(<span class="py-src-number">10</span>-(<span class="py-src-variable">maxPrice</span>%<span class="py-src-number">10</span>))
+<span class="py-src-variable">else</span>:
+        <span class="py-src-variable">maxPrice_base10</span> = <span class="py-src-variable">maxPrice</span>
+
+
+<span class="py-src-variable">marks_list</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">range</span>(<span class="py-src-variable">minPrice_base10</span>, <span class="py-src-variable">maxPrice_base10</span>))
+<span class="py-src-variable">arr</span> = <span class="py-src-variable">np</span>.<span class="py-src-variable">array</span>(<span class="py-src-variable">marks_list</span>)
+
+<span class="py-src-variable">numElems</span> = <span class="py-src-number">5</span>
+<span class="py-src-variable">idx</span> = <span class="py-src-variable">np</span>.<span class="py-src-variable">round</span>(<span class="py-src-variable">np</span>.<span class="py-src-variable">linspace</span>(<span class="py-src-number">0</span>, <span class="py-src-variable">len</span>(<span class="py-src-variable">arr</span>) - <span class="py-src-number">1</span>, <span class="py-src-variable">numElems</span>)).<span class="py-src-variable">astype</span>(<span class="py-src-variable">int</span>)
+<span class="py-src-variable">marks_list5</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">arr</span>[<span class="py-src-variable">idx</span>])
+
+<span class="py-src-variable">marks_list5</span>[<span class="py-src-number">0</span>] = <span class="py-src-variable">minPrice_base10</span>
+<span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">len</span>(<span class="py-src-variable">marks_list5</span>)-<span class="py-src-number">1</span>] = <span class="py-src-variable">maxPrice_base10</span>
+<span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">range</span>(<span class="py-src-number">1</span>,<span class="py-src-variable">len</span>(<span class="py-src-variable">marks_list5</span>)-<span class="py-src-number">1</span>):
+    <span class="py-src-variable">if</span> <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>]%<span class="py-src-number">25</span> != <span class="py-src-number">0</span>:
+        <span class="py-src-variable">if</span> <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>]%<span class="py-src-number">25</span> &lt;= <span class="py-src-number">25</span>/<span class="py-src-number">2</span>:
+            <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>] = <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>] - <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>]%<span class="py-src-number">25</span>
+        <span class="py-src-variable">else</span>:
+            <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>] = <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>] + (<span class="py-src-number">25</span> - <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">i</span>]%<span class="py-src-number">25</span>)
+
+
+<span class="py-src-variable">marksPrices</span> = {}
+<span class="py-src-variable">styleDict</span>   = {}
+<span class="py-src-variable">styleDict1</span> = {<span class="py-src-string">&#x27;color&#x27;</span>: <span class="py-src-string">&#x27;red&#x27;</span>,     <span class="py-src-string">&#x27;font-size&#x27;</span>:<span class="py-src-string">&#x27;13pt&#x27;</span>, <span class="py-src-string">&#x27;font-weight&#x27;</span>:<span class="py-src-string">&#x27;normal&#x27;</span>}
+<span class="py-src-variable">styleDict2</span> = {<span class="py-src-string">&#x27;color&#x27;</span>: <span class="py-src-string">&#x27;#696b6e&#x27;</span>, <span class="py-src-string">&#x27;font-size&#x27;</span>:<span class="py-src-string">&#x27;12pt&#x27;</span>}
+<span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">marks_list5</span>:
+        <span class="py-src-variable">i</span> = <span class="py-src-variable">int</span>(<span class="py-src-variable">i</span>)
+        <span class="py-src-variable">marksValues</span> = {}
+        <span class="py-src-variable">if</span> <span class="py-src-variable">i</span> == <span class="py-src-variable">marks_list5</span>[<span class="py-src-number">0</span>] <span class="py-src-variable">or</span> <span class="py-src-variable">i</span> == <span class="py-src-variable">marks_list5</span>[<span class="py-src-variable">len</span>(<span class="py-src-variable">marks_list5</span>)-<span class="py-src-number">1</span>]:
+                <span class="py-src-variable">marksValues</span>[<span class="py-src-string">&#x27;label&#x27;</span>] = <span class="py-src-string">&#x27;{}&#x27;</span>.<span class="py-src-variable">format</span>(<span class="py-src-variable">i</span>)
+                <span class="py-src-variable">marksValues</span>[<span class="py-src-string">&#x27;style&#x27;</span>] = <span class="py-src-variable">styleDict1</span>
+        <span class="py-src-variable">else</span>:
+                <span class="py-src-variable">marksValues</span>[<span class="py-src-string">&#x27;label&#x27;</span>] = <span class="py-src-string">&#x27;{}&#x27;</span>.<span class="py-src-variable">format</span>(<span class="py-src-variable">i</span>)
+                <span class="py-src-variable">marksValues</span>[<span class="py-src-string">&#x27;style&#x27;</span>] = <span class="py-src-variable">styleDict2</span>
+        <span class="py-src-variable">marksPrices</span>[<span class="py-src-variable">i</span>] = <span class="py-src-variable">marksValues</span>
+
+
+
+
+
+
+<span class="py-src-comment"># =====================================================</span>
+<span class="py-src-comment"># Layout</span>
+<span class="py-src-comment"># =====================================================</span>
+<span class="py-src-variable">app</span>.<span class="py-src-variable">layout</span> = <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+    <span class="py-src-variable">children</span>=[
+        <span class="py-src-variable">navbar</span>,
+        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(<span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;min-height&#x27;</span>:<span class="py-src-string">&#x27;34pt&#x27;</span>}),
+        <span class="py-src-variable">sidebar</span>,
+        <span class="py-src-variable">navbar2</span>,
+        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+            <span class="py-src-variable">style</span>={
+                <span class="py-src-string">&#x27;maxWidth&#x27;</span>: <span class="py-src-string">&#x27;2500px&#x27;</span>,
+                <span class="py-src-string">&#x27;margin&#x27;</span>: <span class="py-src-string">&#x27;0 auto 25px&#x27;</span>,
+            },
+            <span class="py-src-variable">children</span>=[
+                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;margin-left&#x27;</span>:<span class="py-src-string">&#x27;50pt&#x27;</span>,<span class="py-src-string">&#x27;margin-right&#x27;</span>:<span class="py-src-string">&#x27;50pt&#x27;</span>,<span class="py-src-string">&#x27;margin-top&#x27;</span>:<span class="py-src-string">&#x27;-5pt&#x27;</span>,<span class="py-src-string">&#x27;z-index&#x27;</span>: <span class="py-src-string">&#x27;-100&#x27;</span>},
+                    <span class="py-src-variable">children</span>=[
+                        <span class="py-src-comment"># #  No borrar  # # </span>
+                        <span class="py-src-comment"># # dcc.Input(</span>
+                        <span class="py-src-comment"># #     id=&#x27;sincro1&#x27;,</span>
+                        <span class="py-src-comment"># #     value = resetfile(&#x27;4000&#x27;)</span>
+                        <span class="py-src-comment"># # ),</span>
+                        <span class="py-src-comment"># # dcc.Input(</span>
+                        <span class="py-src-comment"># #     id=&#x27;sincro2&#x27;,</span>
+                        <span class="py-src-comment"># #     value = 2</span>
+                        <span class="py-src-comment"># # ),</span>
+                        <span class="py-src-comment"># </span>
+                        <span class="py-src-comment"># 0.1</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divDos1&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;color&#x27;</span>: <span class="py-src-string">&#x27;black&#x27;</span>, <span class="py-src-string">&#x27;font-size&#x27;</span>:<span class="py-src-string">&#x27;15pt&#x27;</span>},
+                                                    <span class="py-src-variable">children</span>=[
+                                                        <span class="py-src-string">&quot;Brand&quot;</span>
+                                                    ]
+                                                ),
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;brand_div_id&#x27;</span>,
+                                                    <span class="py-src-variable">children</span>=[
+                                                        <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Dropdown</span>(
+                                                            <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;brand_id&#x27;</span>,
+                                                            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;max-width&#x27;</span>: <span class="py-src-string">&#x27;100%&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>: <span class="py-src-string">&#x27;10px&#x27;</span>},
+                                                            <span class="py-src-variable">options</span>=<span class="py-src-variable">brands</span>,
+                                                            <span class="py-src-variable">multi</span>=<span class="py-src-variable">True</span>,
+                                                            <span class="py-src-variable">value</span>=<span class="py-src-variable">first_brand</span>
+                                                        ),
+                                                    ]    
+                                                ),
+                                            ]
+                                        ),
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Br</span>(), <span class="py-src-variable">html</span>.<span class="py-src-variable">Br</span>(), <span class="py-src-variable">html</span>.<span class="py-src-variable">Br</span>(),
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;color&#x27;</span>: <span class="py-src-string">&#x27;black&#x27;</span>, <span class="py-src-string">&#x27;font-size&#x27;</span>:<span class="py-src-string">&#x27;15pt&#x27;</span>},
+                                                    <span class="py-src-variable">children</span>=[
+                                                        <span class="py-src-string">&quot;Price ($)&quot;</span>
+                                                    ]
+                                                ),
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;price_div_id&#x27;</span>,
+                                                    <span class="py-src-variable">children</span>=[
+                                                        <span class="py-src-variable">dcc</span>.<span class="py-src-variable">RangeSlider</span>(
+                                                            <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;price_id&#x27;</span>,
+                                                            <span class="py-src-variable">min</span>=<span class="py-src-variable">minPrice_base10</span>,
+                                                            <span class="py-src-variable">max</span>=<span class="py-src-variable">maxPrice_base10</span>,
+                                                            <span class="py-src-variable">step</span>=<span class="py-src-number">10</span>,
+                                                            <span class="py-src-variable">value</span>=[<span class="py-src-variable">minPrice_base10</span>, <span class="py-src-variable">maxPrice_base10</span>],
+                                                            <span class="py-src-variable">marks</span>=<span class="py-src-variable">marksPrices</span>,
+                                                        ),
+                                                    ]    
+                                                ),
+                                            ]
+                                        ),
+                                    ]
+                                ),
+                            ]
+                        ),
+                        <span class="py-src-comment"># 0.2</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divDos2&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;color&#x27;</span>: <span class="py-src-string">&#x27;black&#x27;</span>, <span class="py-src-string">&#x27;font-size&#x27;</span>:<span class="py-src-string">&#x27;15pt&#x27;</span>},
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-string">&quot;Series&quot;</span>
+                                            ]
+                                        ),
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Dropdown</span>(
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;brand_series_id&#x27;</span>,
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;max-width&#x27;</span>: <span class="py-src-string">&#x27;100%&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>: <span class="py-src-string">&#x27;10px&#x27;</span>},
+                                                    <span class="py-src-variable">options</span>=<span class="py-src-variable">brand_series_dropdown</span>,
+                                                    <span class="py-src-variable">multi</span>=<span class="py-src-variable">True</span>,
+                                                    <span class="py-src-variable">value</span>=<span class="py-src-variable">brand_series_value</span>
+                                                ),
+                                            ]    
+                                        ),
+                                    ]
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;margin-left&#x27;</span>:<span class="py-src-string">&#x27;50pt&#x27;</span>,<span class="py-src-string">&#x27;margin-right&#x27;</span>:<span class="py-src-string">&#x27;50pt&#x27;</span>,<span class="py-src-string">&#x27;margin-top&#x27;</span>:<span class="py-src-string">&#x27;7pt&#x27;</span>},
+                    <span class="py-src-variable">children</span>=[
+                        <span class="py-src-comment"># 1</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divSquare1&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 0px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+                                            <span class="py-src-variable">children</span> =[
+                                                <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>},
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;ave_reviews&#x27;</span>,                                                        
+                                                    <span class="py-src-variable">figure</span>=<span class="py-src-variable">avgReviewsBarChart</span>(<span class="py-src-variable">data</span>, <span class="py-src-variable">first_brand</span>, <span class="py-src-variable">series_first_brand</span>),
+                                                    <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+                                                )
+                                            ]
+                                        ),
+                                    ]
+                                ),
+                            ]
+                        ),
+                        <span class="py-src-comment"># 2</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divSquare1&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;color&#x27;</span>: <span class="py-src-string">&#x27;black&#x27;</span>, <span class="py-src-string">&#x27;font-size&#x27;</span>:<span class="py-src-string">&#x27;15pt&#x27;</span>},
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 00px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+                                                    <span class="py-src-variable">children</span> =[
+                                                        <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                                                            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>},
+                                                            <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;ave_prices&#x27;</span>,
+                                                            <span class="py-src-variable">figure</span>=<span class="py-src-variable">avgPricesBarChart</span>(<span class="py-src-variable">data</span>, <span class="py-src-variable">first_brand</span>, <span class="py-src-variable">series_first_brand</span>),
+                                                            <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+                                                        )
+                                                    ]
+                                                ),
+                                            ]
+                                        ),
+                                    ]
+                                ),
+                            ]
+                        ),
+                        <span class="py-src-comment"># 3</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divSquare2&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Loading</span>(
+                                            <span class="py-src-variable">id</span>=<span class="py-src-string">&quot;loading-1&quot;</span>,
+                                            <span class="py-src-variable">type</span>=<span class="py-src-string">&quot;default&quot;</span>,
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;cloud&#x27;</span>,
+                                                    <span class="py-src-variable">children</span>=[
+                                                        <span class="py-src-variable">imgCloud</span>,
+                                                    ]
+                                                )
+                                            ]
+                                        )
+                                    ]
+                                ),
+                            ]
+                        ),
+                        <span class="py-src-comment"># 4</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divSquare3&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 50px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+                                            <span class="py-src-variable">children</span> =[
+                                                <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>},
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;ave_price&#x27;</span>,                                                        
+                                                    <span class="py-src-variable">figure</span>=<span class="py-src-variable">avgVsPriceBubbleChart</span>(),
+                                                    <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+                                                )
+                                            ]
+                                        ),
+                                    ]
+                                )
+                            ]
+                        ),
+                        <span class="py-src-comment"># 5</span>
+                        <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                            <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;divSquare2&#x27;</span>,
+                            <span class="py-src-variable">children</span>=[
+                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                    <span class="py-src-variable">className</span>=<span class="py-src-string">&#x27;interDivSquare&#x27;</span>,
+                                    <span class="py-src-variable">children</span>=[
+                                        <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Loading</span>(
+                                            <span class="py-src-variable">id</span>=<span class="py-src-string">&quot;loading-2&quot;</span>,
+                                            <span class="py-src-variable">type</span>=<span class="py-src-string">&quot;default&quot;</span>,
+                                            <span class="py-src-variable">children</span>=[
+                                                <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+                                                    <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;histo_div&#x27;</span>,
+                                                    <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 5px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+                                                    <span class="py-src-variable">children</span>= [
+                                                        <span class="py-src-variable">hist</span>
+                                                    ]
+                                                )
+                                            ]
+                                        )
+                                    ]
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+        )
+    ]
+)
+
+
+
+
+<span class="py-src-comment"># =====================================================</span>
+<span class="py-src-comment"># Callback</span>
+<span class="py-src-comment"># =====================================================</span>
+
+<span class="py-src-comment"># # # # IMPORTANTE: No borrar este callback.. Puede ser importante para resolver o seguir probando el problema con el doble callback</span>
+<span class="py-src-comment"># # Sin embargo, estaba causando que se cargara la página dos veces when refreshing the page:</span>
+<span class="py-src-comment"># # @app.callback(</span>
+<span class="py-src-comment"># #         Output(&#x27;sincro2&#x27;, &#x27;value&#x27;),</span>
+<span class="py-src-comment"># #     [</span>
+<span class="py-src-comment"># #         Input(&#x27;sincro1&#x27;, &#x27;value&#x27;),</span>
+<span class="py-src-comment"># #     ], </span>
+<span class="py-src-comment"># # )</span>
+<span class="py-src-comment"># # def changing_brand(sincrovalue):</span>
+<span class="py-src-comment"># #     va = resetfile(&#x27;4000&#x27;)</span>
+<span class="py-src-comment"># #     return va</span>
+
+
+@<span class="py-src-variable">app</span>.<span class="py-src-variable">callback</span>(
+    [
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;cloud&#x27;</span>,           <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;children&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;histo_div&#x27;</span>,       <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;children&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_series_id&#x27;</span>, <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;value&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;ave_reviews&#x27;</span>,     <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;figure&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;ave_prices&#x27;</span>,      <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;figure&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_id&#x27;</span>,        <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;options&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_series_id&#x27;</span>, <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;options&#x27;</span>),
+    ],
+    [
+        <span class="py-src-variable">Input</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_id&#x27;</span>, <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;value&#x27;</span>),
+        <span class="py-src-variable">Input</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;price_id&#x27;</span>, <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;value&#x27;</span>),
+    ],
+    [
+        <span class="py-src-variable">State</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_series_id&#x27;</span>, <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;value&#x27;</span>),
+    ]
+)
+<span class="py-src-variable">def</span> <span class="py-src-identifier">changing_brand</span>(<span class="py-src-parameter">input_value</span>, <span class="py-src-parameter">price</span>, <span class="py-src-parameter">input_value_series</span>):
+    <span class="py-src-variable">f</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;r&#x27;</span>)
+    <span class="py-src-variable">va</span> = <span class="py-src-variable">f</span>.<span class="py-src-variable">read</span>()
+
+    <span class="py-src-variable">dataRangePrice</span> = <span class="py-src-variable">data</span>[ (<span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;price&#x27;</span>] &gt;= <span class="py-src-variable">price</span>[<span class="py-src-number">0</span>])  &amp;  (<span class="py-src-variable">data</span>[<span class="py-src-string">&#x27;price&#x27;</span>] &lt;= <span class="py-src-variable">price</span>[<span class="py-src-number">1</span>]) ]
+
+    <span class="py-src-variable">brandsRangePrice</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">dataRangePrice</span>[<span class="py-src-string">&#x27;brand&#x27;</span>]))
+    <span class="py-src-variable">brandsRangePriceDropdown</span> = [ {<span class="py-src-string">&quot;label&quot;</span>: <span class="py-src-variable">b</span>, <span class="py-src-string">&quot;value&quot;</span>: <span class="py-src-variable">b</span>} <span class="py-src-variable">for</span> <span class="py-src-variable">b</span> <span class="py-src-variable">in</span>  <span class="py-src-variable">brandsRangePrice</span> ]
+
+    <span class="py-src-variable">brand_series_listRangePrice</span> = <span class="py-src-variable">dataRangePrice</span>[<span class="py-src-string">&#x27;brand&#x27;</span>]+<span class="py-src-string">&#x27; - &#x27;</span>+<span class="py-src-variable">dataRangePrice</span>[<span class="py-src-string">&#x27;series&#x27;</span>]
+    <span class="py-src-variable">brand_series_listRangePrice</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_series_listRangePrice</span>))
+    <span class="py-src-variable">brand_series_listRangePrice</span> = <span class="py-src-variable">sorted</span>(<span class="py-src-variable">brand_series_listRangePrice</span>)
+    <span class="py-src-variable">brand_seriesRangePriceDropdown</span> = [ {<span class="py-src-string">&quot;label&quot;</span>: <span class="py-src-variable">s</span>, <span class="py-src-string">&quot;value&quot;</span>: <span class="py-src-variable">s</span>} <span class="py-src-variable">for</span> <span class="py-src-variable">s</span> <span class="py-src-variable">in</span>  <span class="py-src-variable">brand_series_listRangePrice</span> ]
+
+    <span class="py-src-variable">if</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">input_value</span>) == <span class="py-src-number">0</span> <span class="py-src-variable">and</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">input_value_series</span>) == <span class="py-src-number">0</span>:        
+
+        <span class="py-src-variable">emp</span> = <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 50px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;350px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+        )
+        <span class="py-src-variable">ser</span> = [<span class="py-src-variable">None</span>] * <span class="py-src-variable">len</span>(<span class="py-src-variable">input_value</span>)
+        <span class="py-src-variable">ave_reviews</span> = <span class="py-src-variable">avgReviewsBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+        <span class="py-src-variable">ave_prices</span> = <span class="py-src-variable">avgPricesBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+        <span class="py-src-variable">return</span> <span class="py-src-variable">emp</span>, <span class="py-src-variable">emp</span>, <span class="py-src-variable">no_update</span>, <span class="py-src-variable">ave_reviews</span>, <span class="py-src-variable">ave_prices</span>, <span class="py-src-variable">brandsRangePriceDropdown</span>, <span class="py-src-variable">brand_seriesRangePriceDropdown</span>
+
+    <span class="py-src-variable">elif</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">input_value</span>) == <span class="py-src-number">0</span>:
+        <span class="py-src-variable">file</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;w&#x27;</span>) 
+        <span class="py-src-variable">file</span>.<span class="py-src-variable">write</span>(<span class="py-src-string">&#x27;2&#x27;</span>)
+        <span class="py-src-variable">file</span>.<span class="py-src-variable">close</span>()
+
+        <span class="py-src-variable">emp</span> = <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(
+            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 50px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;350px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+        )
+        
+        <span class="py-src-variable">ser</span> = [<span class="py-src-variable">None</span>] * <span class="py-src-variable">len</span>(<span class="py-src-variable">input_value</span>)
+        <span class="py-src-variable">ave_reviews</span> = <span class="py-src-variable">avgReviewsBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+        <span class="py-src-variable">ave_prices</span> = <span class="py-src-variable">avgPricesBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+        <span class="py-src-variable">return</span> <span class="py-src-variable">emp</span>, <span class="py-src-variable">emp</span>, [], <span class="py-src-variable">ave_reviews</span>, <span class="py-src-variable">ave_prices</span>, <span class="py-src-variable">brandsRangePriceDropdown</span>, <span class="py-src-variable">brand_seriesRangePriceDropdown</span>
+
+
+    <span class="py-src-variable">elif</span> (<span class="py-src-variable">va</span> != <span class="py-src-string">&#x27;3&#x27;</span>):
+        <span class="py-src-variable">file</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;w&#x27;</span>)
+        <span class="py-src-variable">file</span>.<span class="py-src-variable">write</span>(<span class="py-src-string">&#x27;2&#x27;</span>)
+        <span class="py-src-variable">file</span>.<span class="py-src-variable">close</span>()
+
+        <span class="py-src-comment"># This is the values taken fron the series Dropdown:</span>
+        <span class="py-src-variable">brand_distint</span> = [ <span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">0</span>] <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">input_value_series</span> ]
+        <span class="py-src-variable">brand_distint</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_distint</span>))
+
+        <span class="py-src-variable">brands_to_add</span>     = <span class="py-src-variable">list</span>(<span class="py-src-variable">np</span>.<span class="py-src-variable">setdiff1d</span>(<span class="py-src-variable">input_value</span>,<span class="py-src-variable">brand_distint</span>))
+        <span class="py-src-variable">brands_to_suprime</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">np</span>.<span class="py-src-variable">setdiff1d</span>(<span class="py-src-variable">brand_distint</span>,<span class="py-src-variable">input_value</span>))
+
+
+        <span class="py-src-variable">brand_series_value</span> = []
+        <span class="py-src-variable">if</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">brands_to_add</span>) != <span class="py-src-number">0</span>:
+            <span class="py-src-variable">brand_series_value_to_update</span> = <span class="py-src-variable">dataRangePrice</span>.<span class="py-src-variable">query</span>(<span class="py-src-string">&#x27;brand in @brands_to_add&#x27;</span>)[<span class="py-src-string">&#x27;brand&#x27;</span>]+<span class="py-src-string">&#x27; - &#x27;</span>+<span class="py-src-variable">dataRangePrice</span>.<span class="py-src-variable">query</span>(<span class="py-src-string">&#x27;brand in @brands_to_add&#x27;</span>)[<span class="py-src-string">&#x27;series&#x27;</span>]
+            <span class="py-src-variable">brand_series_value_to_update</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_series_value_to_update</span>))  <span class="py-src-comment"># aqui eliminamos los iguales</span>
+
+            <span class="py-src-variable">brand_series_value</span> = <span class="py-src-variable">input_value_series</span> + <span class="py-src-variable">brand_series_value_to_update</span>
+
+        <span class="py-src-variable">if</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">brands_to_suprime</span>) != <span class="py-src-number">0</span>:
+            <span class="py-src-variable">brand_series_value</span> = [ <span class="py-src-variable">value</span> <span class="py-src-variable">for</span> <span class="py-src-variable">value</span> <span class="py-src-variable">in</span> <span class="py-src-variable">input_value_series</span> <span class="py-src-variable">if</span> <span class="py-src-variable">value</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">0</span>]  <span class="py-src-variable">not</span> <span class="py-src-variable">in</span>  <span class="py-src-variable">brands_to_suprime</span> ]
+
+        <span class="py-src-variable">if</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">brand_series_value</span>) == <span class="py-src-number">0</span>:
+            <span class="py-src-variable">ser</span> = [ <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">2</span>:]) <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">input_value_series</span> ]
+        <span class="py-src-variable">else</span>:
+            <span class="py-src-variable">ser</span> = [ <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">2</span>:]) <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">brand_series_value</span> ]
+
+        <span class="py-src-variable">text</span> = <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">dataRangePrice</span>.<span class="py-src-variable">query</span>(<span class="py-src-string">&#x27;brand in @input_value &amp; series in @ser&#x27;</span>)[<span class="py-src-string">&#x27;reviews_one_string&#x27;</span>])
+
+        <span class="py-src-variable">if</span> <span class="py-src-variable">text</span> == <span class="py-src-string">&#x27;&#x27;</span>:
+            <span class="py-src-variable">fignada</span> = <span class="py-src-variable">go</span>.<span class="py-src-variable">Figure</span>(<span class="py-src-variable">data</span>=[])
+
+            <span class="py-src-variable">nada</span> = <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>},
+                <span class="py-src-variable">figure</span>=<span class="py-src-variable">fignada</span>,
+                <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+            )
+            <span class="py-src-variable">imgCloud</span> = <span class="py-src-variable">nada</span>
+            <span class="py-src-variable">di</span> = <span class="py-src-variable">nada</span>
+            <span class="py-src-variable">ave_reviews</span> = <span class="py-src-variable">None</span>
+            <span class="py-src-variable">ave_prices</span> = <span class="py-src-variable">None</span>
+        <span class="py-src-variable">else</span>:
+            <span class="py-src-variable">cloud</span> = <span class="py-src-variable">wordCloud</span>(<span class="py-src-variable">text</span>)
+            
+            <span class="py-src-variable">imgCloud</span> = <span class="py-src-variable">img_wordCloud</span>(<span class="py-src-variable">cloud</span>)
+            <span class="py-src-variable">imgHistoWords</span> = <span class="py-src-variable">wordCountBarChart</span>(<span class="py-src-variable">text</span>,<span class="py-src-number">30</span>)
+
+            <span class="py-src-variable">di</span> = <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(<span class="py-src-variable">children</span>=[<span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;histo&#x27;</span>,
+                <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 50px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;370px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+                <span class="py-src-variable">figure</span>=<span class="py-src-variable">imgHistoWords</span>, <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+            )])
+
+            <span class="py-src-variable">ave_reviews</span> = <span class="py-src-variable">avgReviewsBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+            <span class="py-src-variable">ave_prices</span> = <span class="py-src-variable">avgPricesBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+
+        <span class="py-src-variable">return</span> (
+            <span class="py-src-variable">imgCloud</span>,
+            <span class="py-src-variable">di</span>,
+            <span class="py-src-variable">brand_series_value</span> <span class="py-src-variable">if</span>   <span class="py-src-variable">len</span>(<span class="py-src-variable">brand_series_value</span>) !=<span class="py-src-number">0</span>   <span class="py-src-variable">else</span>   <span class="py-src-variable">input_value_series</span>,
+            <span class="py-src-variable">go</span>.<span class="py-src-variable">Figure</span>(<span class="py-src-variable">data</span>=[]) <span class="py-src-variable">if</span> <span class="py-src-variable">text</span> == <span class="py-src-string">&#x27;&#x27;</span> <span class="py-src-variable">else</span> <span class="py-src-variable">ave_reviews</span>,
+            <span class="py-src-variable">go</span>.<span class="py-src-variable">Figure</span>(<span class="py-src-variable">data</span>=[]) <span class="py-src-variable">if</span> <span class="py-src-variable">text</span> == <span class="py-src-string">&#x27;&#x27;</span> <span class="py-src-variable">else</span> <span class="py-src-variable">ave_prices</span>,
+            <span class="py-src-variable">brandsRangePriceDropdown</span>,
+            <span class="py-src-variable">brand_seriesRangePriceDropdown</span>
+        )
+    
+    <span class="py-src-variable">else</span>: <span class="py-src-comment"># cuando es 3 viene de la otra</span>
+        <span class="py-src-variable">resetfile</span>(<span class="py-src-string">&#x27;5000&#x27;</span>)
+
+        <span class="py-src-variable">ser</span>  = [ <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">2</span>:]) <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">input_value_series</span> ]
+        <span class="py-src-variable">text</span> = <span class="py-src-string">&#x27; &#x27;</span>.<span class="py-src-variable">join</span>(<span class="py-src-variable">dataRangePrice</span>.<span class="py-src-variable">query</span>(<span class="py-src-string">&#x27;brand in @input_value &amp; series in @ser&#x27;</span>)[<span class="py-src-string">&#x27;reviews_one_string&#x27;</span>])
+
+        <span class="py-src-variable">if</span> <span class="py-src-variable">text</span> == <span class="py-src-string">&#x27;&#x27;</span>:
+            <span class="py-src-variable">fignada</span> = <span class="py-src-variable">go</span>.<span class="py-src-variable">Figure</span>(<span class="py-src-variable">data</span>=[])
+
+            <span class="py-src-variable">nada</span> = <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;360px&#x27;</span>},
+                <span class="py-src-variable">figure</span>=<span class="py-src-variable">fignada</span>,
+                <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+            )
+            <span class="py-src-variable">imgCloud</span> = <span class="py-src-variable">nada</span>
+            <span class="py-src-variable">di</span> = <span class="py-src-variable">nada</span>
+            <span class="py-src-variable">ave_reviews</span> = <span class="py-src-variable">None</span>
+            <span class="py-src-variable">ave_prices</span> = <span class="py-src-variable">None</span>
+
+        <span class="py-src-variable">else</span>:
+            <span class="py-src-variable">cloud</span> = <span class="py-src-variable">wordCloud</span>(<span class="py-src-variable">text</span>)
+            <span class="py-src-variable">imgCloud</span> = <span class="py-src-variable">img_wordCloud</span>(<span class="py-src-variable">cloud</span>)
+            
+            <span class="py-src-variable">imgHistoWords</span> = <span class="py-src-variable">wordCountBarChart</span>(<span class="py-src-variable">text</span>,<span class="py-src-number">30</span>)
+
+            <span class="py-src-variable">di</span> = <span class="py-src-variable">html</span>.<span class="py-src-variable">Div</span>(<span class="py-src-variable">children</span>=[<span class="py-src-variable">dcc</span>.<span class="py-src-variable">Graph</span>(
+                <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;histo&#x27;</span>,
+                <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;width&#x27;</span>: <span class="py-src-string">&#x27;calc(100% - 50px)&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>:<span class="py-src-string">&#x27;370px&#x27;</span>, <span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>, <span class="py-src-string">&#x27;margin-left&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>, <span class="py-src-string">&#x27;margin-right&#x27;</span>: <span class="py-src-string">&#x27;auto&#x27;</span>},
+                <span class="py-src-variable">figure</span>=<span class="py-src-variable">imgHistoWords</span>, <span class="py-src-variable">config</span>={<span class="py-src-string">&#x27;displayModeBar&#x27;</span>: <span class="py-src-variable">False</span>}
+            )])
+
+            <span class="py-src-variable">ave_reviews</span> = <span class="py-src-variable">avgReviewsBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+            <span class="py-src-variable">ave_prices</span> = <span class="py-src-variable">avgPricesBarChart</span>(<span class="py-src-variable">dataRangePrice</span>, <span class="py-src-variable">input_value</span>, <span class="py-src-variable">ser</span>)
+
+        <span class="py-src-variable">return</span> (
+            <span class="py-src-variable">imgCloud</span>,
+            <span class="py-src-variable">di</span>,
+            <span class="py-src-variable">no_update</span>,
+            <span class="py-src-variable">go</span>.<span class="py-src-variable">Figure</span>(<span class="py-src-variable">data</span>=[]) <span class="py-src-variable">if</span> <span class="py-src-variable">text</span> == <span class="py-src-string">&#x27;&#x27;</span> <span class="py-src-variable">else</span> <span class="py-src-variable">ave_reviews</span>,
+            <span class="py-src-variable">go</span>.<span class="py-src-variable">Figure</span>(<span class="py-src-variable">data</span>=[]) <span class="py-src-variable">if</span> <span class="py-src-variable">text</span> == <span class="py-src-string">&#x27;&#x27;</span> <span class="py-src-variable">else</span> <span class="py-src-variable">ave_prices</span>,
+            <span class="py-src-variable">brandsRangePriceDropdown</span>,
+            <span class="py-src-variable">brand_seriesRangePriceDropdown</span>
+        )
+
+
+
+
+@<span class="py-src-variable">app</span>.<span class="py-src-variable">callback</span>(
+        <span class="py-src-variable">Output</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_div_id&#x27;</span>,   <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;children&#x27;</span>),
+    [
+        <span class="py-src-variable">Input</span>(<span class="py-src-variable">component_id</span>=<span class="py-src-string">&#x27;brand_series_id&#x27;</span>, <span class="py-src-variable">component_property</span>=<span class="py-src-string">&#x27;value&#x27;</span>)
+    ],
+)
+<span class="py-src-variable">def</span> <span class="py-src-identifier">changing_brand_series</span>(<span class="py-src-parameter">input_value</span>):
+    <span class="py-src-variable">f</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;r&#x27;</span>) 
+    <span class="py-src-variable">va</span> = <span class="py-src-variable">f</span>.<span class="py-src-variable">read</span>()
+
+    <span class="py-src-variable">if</span> <span class="py-src-variable">len</span>(<span class="py-src-variable">input_value</span>) == <span class="py-src-number">0</span> <span class="py-src-variable">and</span> <span class="py-src-variable">va</span> != <span class="py-src-string">&#x27;2&#x27;</span>:
+        
+        <span class="py-src-variable">brand_distint</span> = []
+
+        <span class="py-src-variable">div</span> = <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Dropdown</span>(
+            <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;brand_id&#x27;</span>,
+            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;max-width&#x27;</span>: <span class="py-src-string">&#x27;100%&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>: <span class="py-src-string">&#x27;10px&#x27;</span>},
+            <span class="py-src-variable">options</span>=<span class="py-src-variable">brands</span>,
+            <span class="py-src-variable">multi</span>=<span class="py-src-variable">True</span>,
+            <span class="py-src-variable">value</span>=<span class="py-src-variable">brand_distint</span>
+        ),
+
+        <span class="py-src-variable">return</span> <span class="py-src-variable">div</span>
+
+    <span class="py-src-variable">elif</span> <span class="py-src-variable">va</span> == <span class="py-src-string">&#x27;2&#x27;</span>:
+        <span class="py-src-variable">resetfile</span>(<span class="py-src-string">&#x27;5000&#x27;</span>)
+        <span class="py-src-variable">raise</span> <span class="py-src-variable">PreventUpdate</span>
+
+    <span class="py-src-variable">else</span>:
+        <span class="py-src-variable">file</span> = <span class="py-src-variable">open</span>(<span class="py-src-string">&#x27;testfile.txt&#x27;</span>,<span class="py-src-string">&#x27;w&#x27;</span>) 
+        <span class="py-src-variable">file</span>.<span class="py-src-variable">write</span>(<span class="py-src-string">&#x27;3&#x27;</span>)
+        <span class="py-src-variable">file</span>.<span class="py-src-variable">close</span>()
+
+        <span class="py-src-variable">brand_distint</span> = [ <span class="py-src-variable">i</span>.<span class="py-src-variable">split</span>()[<span class="py-src-number">0</span>] <span class="py-src-variable">for</span> <span class="py-src-variable">i</span> <span class="py-src-variable">in</span> <span class="py-src-variable">input_value</span> ]
+        <span class="py-src-variable">brand_distint</span> = <span class="py-src-variable">list</span>(<span class="py-src-variable">set</span>(<span class="py-src-variable">brand_distint</span>))
+
+        <span class="py-src-variable">div</span> = <span class="py-src-variable">dcc</span>.<span class="py-src-variable">Dropdown</span>(
+            <span class="py-src-variable">id</span>=<span class="py-src-string">&#x27;brand_id&#x27;</span>,
+            <span class="py-src-variable">style</span>={<span class="py-src-string">&#x27;max-width&#x27;</span>: <span class="py-src-string">&#x27;100%&#x27;</span>, <span class="py-src-string">&#x27;height&#x27;</span>: <span class="py-src-string">&#x27;10px&#x27;</span>},
+            <span class="py-src-variable">options</span>=<span class="py-src-variable">brands</span>,
+            <span class="py-src-variable">multi</span>=<span class="py-src-variable">True</span>,
+            <span class="py-src-variable">value</span>=<span class="py-src-variable">brand_distint</span>
+        ),
+
+        <span class="py-src-variable">return</span> <span class="py-src-variable">div</span>
+
+
+
+
+@<span class="py-src-variable">app</span>.<span class="py-src-variable">callback</span>(
+    [
+        <span class="py-src-variable">Output</span>(<span class="py-src-string">&#x27;sidebar&#x27;</span>,      <span class="py-src-string">&#x27;style&#x27;</span>),
+        <span class="py-src-variable">Output</span>(<span class="py-src-string">&#x27;sidebarMenu3&#x27;</span>, <span class="py-src-string">&#x27;style&#x27;</span>),
+    ],
+    [
+        <span class="py-src-variable">Input</span>(<span class="py-src-string">&#x27;sidebarButton&#x27;</span>,   <span class="py-src-string">&#x27;n_clicks&#x27;</span>),
+        <span class="py-src-variable">Input</span>(<span class="py-src-string">&#x27;menu3OpenButton&#x27;</span>, <span class="py-src-string">&#x27;n_clicks&#x27;</span>),
+        <span class="py-src-variable">Input</span>(<span class="py-src-string">&#x27;menu3CloseButton&#x27;</span>,<span class="py-src-string">&#x27;n_clicks&#x27;</span>),
+        <span class="py-src-variable">Input</span>(<span class="py-src-string">&#x27;menuHome&#x27;</span>,        <span class="py-src-string">&#x27;n_clicks&#x27;</span>),
+    ]
+)
+<span class="py-src-variable">def</span> <span class="py-src-identifier">display</span>(<span class="py-src-parameter">n_sidebarButton</span>, <span class="py-src-parameter">n_menu3OpenButton</span>, <span class="py-src-parameter">n_menu3CloseButton</span>, <span class="py-src-parameter">n_menuHome</span>):
+    <span class="py-src-variable">ctx</span> = <span class="py-src-variable">dash</span>.<span class="py-src-variable">callback_context</span>
+
+    <span class="py-src-variable">if</span> <span class="py-src-variable">not</span> <span class="py-src-variable">ctx</span>.<span class="py-src-variable">triggered</span>:
+        <span class="py-src-variable">button_id</span> = <span class="py-src-string">&#x27;No clicks yet&#x27;</span>
+    <span class="py-src-variable">else</span>:
+        <span class="py-src-variable">button_id</span> =  <span class="py-src-variable">ctx</span>.<span class="py-src-variable">triggered</span>[<span class="py-src-number">0</span>][<span class="py-src-string">&#x27;prop_id&#x27;</span>].<span class="py-src-variable">split</span>(<span class="py-src-string">&#x27;.&#x27;</span>)[<span class="py-src-number">0</span>]
+
+    <span class="py-src-variable">ctx_msg</span> = <span class="py-src-variable">json</span>.<span class="py-src-variable">dumps</span>({
+        <span class="py-src-string">&#x27;states&#x27;</span>:    <span class="py-src-variable">ctx</span>.<span class="py-src-variable">states</span>,
+        <span class="py-src-string">&#x27;triggered&#x27;</span>: <span class="py-src-variable">ctx</span>.<span class="py-src-variable">triggered</span>,
+        <span class="py-src-string">&#x27;inputs&#x27;</span>:    <span class="py-src-variable">ctx</span>.<span class="py-src-variable">inputs</span>
+    }, <span class="py-src-variable">indent</span>=<span class="py-src-number">2</span>)
+
+    <span class="py-src-variable">cl</span> = <span class="py-src-variable">n_sidebarButton</span>
+
+    <span class="py-src-variable">if</span> <span class="py-src-variable">n_sidebarButton</span> <span class="py-src-variable">is</span> <span class="py-src-variable">None</span>:
+        <span class="py-src-variable">return</span> {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}, {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}
+
+    <span class="py-src-variable">elif</span> <span class="py-src-variable">button_id</span> == <span class="py-src-string">&#x27;sidebarButton&#x27;</span>  <span class="py-src-variable">and</span>  <span class="py-src-variable">n_sidebarButton</span>%<span class="py-src-number">2</span> != <span class="py-src-number">0</span>:
+        <span class="py-src-comment"># cl = cl + 1</span>
+        <span class="py-src-variable">return</span> {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>}, {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}
+
+    <span class="py-src-variable">elif</span> <span class="py-src-variable">button_id</span> == <span class="py-src-string">&#x27;menu3OpenButton&#x27;</span>  <span class="py-src-variable">and</span>  <span class="py-src-variable">n_menu3OpenButton</span> &gt; <span class="py-src-number">0</span>:
+        <span class="py-src-variable">return</span> {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>}, {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>}
+
+    <span class="py-src-variable">elif</span> <span class="py-src-variable">button_id</span> == <span class="py-src-string">&#x27;menu3CloseButton&#x27;</span> <span class="py-src-variable">and</span> <span class="py-src-variable">n_menu3CloseButton</span> &gt; <span class="py-src-number">0</span>:
+        <span class="py-src-variable">return</span> {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;block&#x27;</span>}, {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}
+
+    <span class="py-src-variable">elif</span> <span class="py-src-variable">button_id</span> == <span class="py-src-string">&#x27;menuHome&#x27;</span> <span class="py-src-variable">and</span> <span class="py-src-variable">n_menuHome</span> &gt; <span class="py-src-number">0</span>:
+        <span class="py-src-comment"># cl = cl + 1</span>
+        <span class="py-src-variable">return</span> {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}, {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}
+
+    <span class="py-src-variable">else</span>:
+        <span class="py-src-variable">return</span> {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}, {<span class="py-src-string">&#x27;display&#x27;</span>: <span class="py-src-string">&#x27;none&#x27;</span>}
+
+
+
+
+<span class="py-src-comment"># =====================================================</span>
+<span class="py-src-comment"># Running the server</span>
+<span class="py-src-comment"># =====================================================</span>
+<span class="py-src-variable">if</span> <span class="py-src-variable">__name__</span> == <span class="py-src-string">&#x27;__main__&#x27;</span>:
+    <span class="py-src-variable">app</span>.<span class="py-src-variable">run_server</span>(<span class="py-src-variable">debug</span>=<span class="py-src-variable">True</span>, <span class="py-src-variable">port</span>=<span class="py-src-number">8552</span>)
+    <span class="py-src-comment"># app.run_server(debug=True, host=&#x27;0.0.0.0&#x27;)</span>
+
+
+
+</pre>
+</body>
