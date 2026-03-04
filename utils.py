@@ -2,7 +2,7 @@ import nltk
 import string
 # nltk.data.path.append('/home/adelo/.nltk/nltk_data')
 # If we are in the server:
-nltk.data.path.append('./nltk_data')
+nltk.data.path.append('./data/nltk_data')
 from nltk.corpus import stopwords
 
 stopwords_brands_additionals = ['computer','computers','laptop','laptops','thing','things','machine','machines','im','dont','ive']

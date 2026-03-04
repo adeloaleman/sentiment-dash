@@ -1,7 +1,7 @@
 There is also related info here: http://wiki.sinfronteras.ws/view/Dash_-_Plotly#Deploying_Dash_Apps
 
 
-ssh -i  /home/adelo/.aws_ssh_key_pem/my-laptop.pem   ubuntu@54.217.40.182
+ssh -i  /home/adelo/.aws_ssh_key_pem/my-laptop.pem   ubuntu@167.86.87.134
 
 sudo apt update
 
@@ -32,7 +32,7 @@ d
 stopwords
 q
 
-mv ~/nltk_data  ...../sentiment-dash/data  (move the nltk_data to our project's data folder)
+mv ~/nltk_data  ..../sentiment-dash/data  (move the nltk_data to our project's data folder)
 
 
 # Create the WSGI Entry Point
@@ -57,7 +57,7 @@ python index.py
 
 # Luego de lo anterior, probar:
 gunicorn --bind 0.0.0.0:8552 wsgi:server
-http://54.217.40.182:8552
+http://167.86.87.134:8552
 
 
 deactivate
