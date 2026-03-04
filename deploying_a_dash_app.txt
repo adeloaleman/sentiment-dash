@@ -1,0 +1,76 @@
+# This data should already be in our project's folder, so the following shouldn't be necessary:
+python
+>>> import nltk
+>>> nltk.download()
+d
+stopwords
+q
+mv ~/nltk_data  /home/adelo/asystem/archivo/1-pure_sciences/1-IT/2-data_science/1-sentiment_dashboard/development/sentiment-dash/data 
+
+
+# Create the WSGI Entry Point
+vi wsgi.py
+----------
+from index import server
+
+# server = app.server
+
+if __name__ == "__main__":
+    server.run()
+----------
+
+
+# Create the .venv and activate it 
+
+# install requirements.txt
+
+# Probar
+python index.py
+
+gunicorn --bind 0.0.0.0:8552 wsgi:server
+http://167.86.87.134:8552
+
+
+# Deactivate the .venv
+
+
+sudo vi /etc/systemd/system/sentiment-dash.service
+[Unit]
+Description=sentiment-dash
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/var/www/sinfronteras/sentiment-dash
+Environment="PATH=/var/www/sinfronteras/sentiment-dash/.venv/bin"
+ExecStart=/var/www/sinfronteras/sentiment-dash/.venv/bin/gunicorn --workers 3 --bind unix:index.sock -m 007 wsgi:server
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+sudo vi /etc/nginx/sites-available/sentiment-dash.sinfrontera.net
+server {
+    listen 443 ssl http2;
+    server_name sentiment-dash.sinfrontera.net;
+
+    ssl_certificate /etc/letsencrypt/live/sentiment-dash.sinfrontera.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/sentiment-dash.sinfrontera.net/privkey.pem;
+
+    location / {
+        proxy_pass http://unix:/var/www/sinfronteras/sentiment-dash/index.sock;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name sentiment-dash.sinfrontera.net;
+    return 301 https://$host$request_uri;
+}
