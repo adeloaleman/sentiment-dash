@@ -1,4 +1,4 @@
-# Developing a Web Dashboard for analyzing Amazon's Laptop sales data
+## Python Dash app for sentiment analysis of customer reviews
 
 * Try the App at https://sentiment-dash.sinfrontera.net   
 
